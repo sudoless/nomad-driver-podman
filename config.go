@@ -116,6 +116,8 @@ var (
 		"force_pull":         hclspec.NewAttr("force_pull", "bool", false),
 		"readonly_rootfs":    hclspec.NewAttr("readonly_rootfs", "bool", false),
 		"userns":             hclspec.NewAttr("userns", "string", false),
+		"uidmaps":            hclspec.NewAttr("uidmaps", "list(string)", false),
+		"gidmaps":            hclspec.NewAttr("gidmaps", "list(string)", false),
 		"shm_size":           hclspec.NewAttr("shm_size", "string", false),
 	})
 )
@@ -223,5 +225,7 @@ type TaskConfig struct {
 	Privileged        bool               `codec:"privileged"`
 	ReadOnlyRootfs    bool               `codec:"readonly_rootfs"`
 	UserNS            string             `codec:"userns"`
+	UIDMaps           []string           `codec:"uidmaps"`
+	GIDMaps           []string           `codec:"gidmaps"`
 	ShmSize           string             `codec:"shm_size"`
 }

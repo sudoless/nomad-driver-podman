@@ -22,9 +22,6 @@ import (
 	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/types"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/nomad-driver-podman/api"
-	"github.com/hashicorp/nomad-driver-podman/registry"
-	"github.com/hashicorp/nomad-driver-podman/version"
 	"github.com/hashicorp/nomad/client/lib/cpustats"
 	"github.com/hashicorp/nomad/client/taskenv"
 	"github.com/hashicorp/nomad/drivers/shared/eventer"
@@ -36,6 +33,10 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/ryanuber/go-glob"
 	"golang.org/x/sync/singleflight"
+
+	"github.com/hashicorp/nomad-driver-podman/api"
+	"github.com/hashicorp/nomad-driver-podman/registry"
+	"github.com/hashicorp/nomad-driver-podman/version"
 )
 
 const (
@@ -610,6 +611,20 @@ func (d *Driver) StartTask(cfg *drivers.TaskConfig) (*drivers.TaskHandle, *drive
 			createOpts.ContainerSecurityConfig.UserNS = api.Namespace{NSMode: mode, Value: userns[1]}
 		} else {
 			createOpts.ContainerSecurityConfig.UserNS = api.Namespace{NSMode: mode}
+		}
+	}
+
+	switch {
+	case len(driverConfig.UIDMaps) > 0 && len(driverConfig.GIDMaps) > 0:
+		createOpts.IDMappings = &api.IDMappings{
+			UIDMap: api.IDMapsParse(driverConfig.UIDMaps),
+			GIDMap: api.IDMapsParse(driverConfig.GIDMaps),
+		}
+	case len(driverConfig.UIDMaps) >0:
+		uidmaps := api.IDMapsParse(driverConfig.UIDMaps)
+		createOpts.IDMappings = &api.IDMappings{
+			UIDMap: uidmaps,
+			GIDMap: uidmaps,
 		}
 	}
 

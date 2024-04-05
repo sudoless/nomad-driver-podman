@@ -5,6 +5,8 @@ package api
 
 import (
 	"net"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -302,9 +304,9 @@ type ContainerSecurityConfig struct {
 	// IDMappings are UID and GID mappings that will be used by user
 	// namespaces.
 	// Required if UserNS is private.
-	// IDMappings *storage.IDMappingOptions `json:"idmappings,omitempty"`
-	// ReadOnlyFilesystem indicates that everything will be mounted
+	IDMappings *IDMappings `json:"idmappings,omitempty"`
 
+	// ReadOnlyFilesystem indicates that everything will be mounted
 	// as read-only
 	ReadOnlyFilesystem bool `json:"read_only_filesystem,omitempty"`
 }
@@ -619,6 +621,11 @@ type InspectContainerConfig struct {
 	StdinOnce bool `json:"StdinOnce"`
 }
 
+type InspectIDMappings struct {
+	UIDMap []string `json:"UidMap"`
+	GIDMap []string `json:"GidMap"`
+}
+
 // InspectRestartPolicy holds information about the container's restart policy.
 type InspectRestartPolicy struct {
 	// Name contains the container's restart policy.
@@ -931,6 +938,8 @@ type InspectContainerHostConfig struct {
 	// TODO Rootless has an additional 'keep-id' option, presently not
 	// reflected here.
 	UsernsMode string `json:"UsernsMode"`
+	// IDMappings ...
+	IDMappings *InspectIDMappings `json:"IDMappings"`
 	// ShmSize is the size of the container's SHM device.
 	ShmSize int64 `json:"ShmSize"`
 	// Runtime is provided purely for Docker compatibility.
@@ -1436,9 +1445,9 @@ type SecurityInfo struct {
 
 // HostInfo describes the libpod host
 type HostInfo struct {
-	Conmon       *ConmonInfo      `json:"conmon"`
-	Distribution DistributionInfo `json:"distribution"`
-	// IDMappings     IDMappings             `json:"idMappings,omitempty"`
+	Conmon         *ConmonInfo            `json:"conmon"`
+	Distribution   DistributionInfo       `json:"distribution"`
+	IDMappings     IDMappings             `json:"idMappings,omitempty"`
 	OCIRuntime     *OCIRuntimeInfo        `json:"ociRuntime"`
 	RemoteSocket   *RemoteSocket          `json:"remoteSocket,omitempty"`
 	Security       SecurityInfo           `json:"security"`
@@ -1475,11 +1484,37 @@ type SlirpInfo struct {
 	Version    string `json:"version"`
 }
 
+type IDMap struct {
+	ContainerID int `json:"container_id"`
+	HostID      int `json:"host_id"`
+	Size        int `json:"size"`
+}
+
+func IDMapsParse(ss []string) []IDMap {
+	idMaps := make([]IDMap, 0, len(ss))
+	for _, s := range ss {
+		idMaps = append(idMaps, IDMapParse(s))
+	}
+
+	return idMaps
+}
+
+func IDMapParse(s string) IDMap {
+	var idMap IDMap
+	split := strings.Split(s, ":")
+
+	idMap.ContainerID, _ = strconv.Atoi(split[0])
+	idMap.HostID, _ = strconv.Atoi(split[1])
+	idMap.Size, _ = strconv.Atoi(split[2])
+
+	return idMap
+}
+
 // IDMappings describe the GID and UID mappings
-// type IDMappings struct {
-// 	GIDMap []idtools.IDMap `json:"gidmap"`
-// 	UIDMap []idtools.IDMap `json:"uidmap"`
-// }
+type IDMappings struct {
+	UIDMap []IDMap `json:"uidmap"`
+	GIDMap []IDMap `json:"gidmap"`
+}
 
 // DistributionInfo describes the host distribution
 // for libpod
